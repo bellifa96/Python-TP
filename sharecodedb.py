@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 import sqlite3
 
 from flask import Flask, request, render_template, \
@@ -6,7 +9,7 @@ from flask import Flask, request, render_template, \
 
 from model_sqlite import save_doc_as_file_sqlite, \
     read_doc_as_file_sqlite, \
-    get_last_entries_from_files_sqlite
+    get_last_entries_from_files_sqlite, get_last_entries_from_files_admin_sqlite
 
 app = Flask(__name__)
 
@@ -18,9 +21,9 @@ cursor.execute('CREATE TABLE IF NOT EXISTS SHARECODE(ID INTEGER PRIMARY KEY AUTO
 cursor.execute('CREATE TABLE IF NOT EXISTS INFOUSER(ID INTEGER PRIMARY KEY AUTOINCREMENT, Uid CHAR(50), IP CHAR(50),'
                'HOSTNAME CHAR(50),NAVIGATOR CHAR(50), CREATED_AT CHAR(50), LAST_MODIFICATION CHAR(50))')
 
-
 connection.commit()
 connection.close()
+
 
 @app.route('/')
 def index():
@@ -69,6 +72,10 @@ def view(uid):
 @app.route('/admin/')
 def admin():
     pass
+    d = {'last_added': get_last_entries_from_files_admin_sqlite()}
+    code = 'print "Hello World"'
+    print(highlight(code, PythonLexer(), HtmlFormatter()))
+    return render_template('index_admin.html', **d)
 
 
 if __name__ == '__main__':

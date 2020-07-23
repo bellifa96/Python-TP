@@ -10,7 +10,6 @@ from string import ascii_letters, digits
 from flask import request
 
 
-
 def create_uid_sqlite(n=9):
     '''Génère une chaîne de caractères alétoires de longueur n
    en évitant 0, O, I, l pour être sympa.'''
@@ -43,7 +42,8 @@ def save_doc_as_file_sqlite(uid=None, code=None, langage=None, null=None):
     connection = sqlite3.connect('tp.db')
     cursor1 = connection.cursor()
     cursor1.execute('''UPDATE SHARECODE SET Code = ?, Langage = ? WHERE Uid = ? ''', (code, langage, uid))
-    cursor1.execute('''UPDATE INFOUSER SET LAST_MODIFICATION = ?, IP = ?,HOSTNAME = ?,NAVIGATOR = ?  WHERE Uid = ? ''', (date_time, IPAddr, hostname, navigator, uid))
+    cursor1.execute('''UPDATE INFOUSER SET LAST_MODIFICATION = ?, IP = ?,HOSTNAME = ?,NAVIGATOR = ?  WHERE Uid = ? ''',
+                    (date_time, IPAddr, hostname, navigator, uid))
     connection.commit()
     connection.close()
     with open('data/{}'.format(uid), 'w') as fd:
@@ -78,5 +78,47 @@ def get_last_entries_from_files_sqlite(n=10, nlines=10):
             code = ''.join((fd.readline() for i in range(nlines)))
             if fd.readline():
                 code += '\n...'
+        connection = sqlite3.connect('tp.db')
+        cursor1 = connection.cursor()
+        connection.commit()
+        connection.close()
         d.append({'uid': e.name, 'code': code})
+    return d
+
+
+def get_last_entries_from_files_admin_sqlite(n=10, nlines=10):
+    entries = os.scandir('data')
+    d = []
+    user = ""
+    entries = sorted(list(entries),
+                     key=(lambda e: e.stat().st_mtime),
+                     reverse=True)
+    for i, e in enumerate(entries):
+        if i >= n:
+            break
+        if '.lang' in e.name:
+            continue
+        with open('data/{}'.format(e.name)) as fd:
+            code = ''.join((fd.readline() for i in range(nlines)))
+            if fd.readline():
+                code += '\n...'
+        uid = str(e.name)
+        print(uid)
+        connection = sqlite3.connect('tp.db')
+        cursor1 = connection.cursor()
+        ip = cursor1.execute('''SELECT IP FROM INFOUSER where Uid = ? ''', (uid,));
+        ip = ip.fetchone()
+        host = cursor1.execute('''SELECT HOSTNAME FROM INFOUSER where Uid = ? ''', (uid,));
+        host = host.fetchone()
+        navigator = cursor1.execute('''SELECT navigator FROM INFOUSER where Uid = ? ''', (uid,));
+        navigator = navigator.fetchone()
+        create_date = cursor1.execute('''SELECT created_at FROM INFOUSER where Uid = ? ''', (uid,));
+        create_date = create_date.fetchone()
+        modified_date = cursor1.execute('''SELECT last_modification FROM INFOUSER where Uid = ? ''', (uid,));
+        modified_date = modified_date.fetchone()
+        print(user)
+        connection.commit()
+        connection.close()
+        d.append({'uid': e.name, 'code': code, 'ip': ip, 'navigator': navigator, 'host': host, 'create_date': create_date, 'modified_date': modified_date})
+    print(user)
     return d
